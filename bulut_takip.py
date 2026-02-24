@@ -20,7 +20,7 @@ st.title("🏦 İkitelli Ticari - Dinamik Ekip Paneli")
 # 3. GOOGLE SHEETS BAĞLANTISI (Form Yanıtlarının Gittiği Dosya)
 # Not: Formu bağladığın Sheets dosyasının ID'si buysa devam et, değiştiyse ID'yi güncelle.
 SHEET_ID = "1FOy_NSRZUtJIApBe7oirdKSp17qfJk9arb_yOwcPo1g"
-SHEET_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv"
+SHEET_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv"
 
 # 4. VERİ ÇEKME
 @st.cache_data(ttl=5) # 5 saniyede bir tabloyu tazeler
@@ -62,3 +62,4 @@ else:
 # 7. ALT BİLGİ
 st.divider()
 st.caption(f"Veri Kaynağı: Google Sheets | Son Senkronizasyon: {datetime.now().strftime('%H:%M:%S')}")
+
