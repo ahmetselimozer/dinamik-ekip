@@ -17,39 +17,48 @@ st.markdown("""
 
 st.title("🏦 İkitelli Ticari - Dinamik Ekip Paneli")
 
-# 3. GOOGLE SHEETS BAĞLANTISI (Doğrudan Link Yöntemi)
-# Buradaki linki "Paylaş" butonuna bastığında aldığın linkle değiştirelim
-SHEET_PUBLIC_LINK = "https://docs.google.com/spreadsheets/d/1FOy_NSRZUtJIApBe7oirdKSp17qfJk9arb_yOwcPo1g/edit?usp=sharing"
+# 3. DOĞRUDAN CSV YAYIN LİNKİ 
+# Senin gönderdiğin pubhtml linkini, uygulamanın okuyabileceği CSV formatına çevirdim:
+YAYINLANAN_CSV_LINKI = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRpvbLTEaAIgtMaId8eNq6bTDA6rxwti_582SZEHAJu6cD_AzoBb8fZCOYfl_zV3DehPKjWOjmvyV_8/pub?output=csv"
 
 # 4. VERİ ÇEKME FONKSİYONU
-@st.cache_data(ttl=5)
-def verileri_yukle(url):
-    # Linki CSV formatına dönüştüren güvenli yöntem
-    csv_url = url.replace('/edit?usp=sharing', '/export?format=csv')
+@st.cache_data(ttl=5) # Her 5 saniyede bir yeni veri var mı diye kontrol eder
+def verileri_yukle():
     try:
-        df = pd.read_csv(csv_url)
+        # Linkin sonuna cache_bust ekleyerek Google'ın eski veriyi önbellekten getirmesini önlüyoruz
+        taze_link = f"{YAYINLANAN_CSV_LINKI}&timestamp={datetime.now().timestamp()}"
+        df = pd.read_csv(taze_link)
         return df
     except Exception as e:
-        st.error(f"Bağlantı Hatası: {e}")
         return pd.DataFrame()
 
-is_listesi = verileri_yukle(SHEET_PUBLIC_LINK)
+is_listesi = verileri_yukle()
 
-# 5. SOL PANEL
+# 5. SOL PANEL - YENİ KAYIT
 with st.sidebar:
     st.header("📌 İşlem Yönetimi")
+    st.write("Yeni bir iş girmek için aşağıdaki butonu kullanın. Formu gönderdikten sonra bu sayfa otomatik güncellenir.")
+    
+    # Senin Google Form linkin
     st.link_button("🚀 YENİ İŞ KAYDI GİR", "https://docs.google.com/forms/d/1r9odjXloW2hhNqlHm4uo-4dV-aicS4l5s_E9J108s6s/viewform")
+    
     st.divider()
-    st.info("Kayıtlar doğrudan Google Sheets'e işlenir.")
+    st.info("Kayıtlar Google Sheets üzerinde güvenle saklanır.")
 
-# 6. ANA PANEL
+# 6. ANA PANEL - TABLO GÖRÜNÜMÜ
 st.subheader("📋 Aktif İş Takip Listesi")
 
 if not is_listesi.empty:
-    # Sütunları temizleyelim (Boş sütunları gösterme)
-    is_listesi = is_listesi.dropna(how='all', axis=1)
+    # Boş satırları ve sütunları temizle
+    is_listesi = is_listesi.dropna(how='all', axis=0).dropna(how='all', axis=1)
+    
+    # En yeni kaydı en üstte göster (Zaman damgasına göre)
+    if 'Zaman damgası' in is_listesi.columns:
+        is_listesi = is_listesi.sort_values(by='Zaman damgası', ascending=False)
+        
     st.dataframe(is_listesi, use_container_width=True, hide_index=True)
 else:
-    st.info("Tablo okunuyor veya henüz veri yok. Lütfen Google Sheets dosyanızda 'Bağlantıya sahip olan herkes: Görüntüleyebilir' ayarının açık olduğundan emin olun.")
+    st.info("Henüz bir veri bulunamadı. Lütfen form üzerinden ilk kaydı girin.")
 
+# 7. ALT BİLGİ
 st.caption(f"Son Senkronizasyon: {datetime.now().strftime('%H:%M:%S')}")
