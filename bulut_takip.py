@@ -17,49 +17,39 @@ st.markdown("""
 
 st.title("🏦 İkitelli Ticari - Dinamik Ekip Paneli")
 
-# 3. GOOGLE SHEETS BAĞLANTISI (Form Yanıtlarının Gittiği Dosya)
-# Not: Formu bağladığın Sheets dosyasının ID'si buysa devam et, değiştiyse ID'yi güncelle.
-SHEET_ID = "1FOy_NSRZUtJIApBe7oirdKSp17qfJk9arb_yOwcPo1g"
-SHEET_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv"
+# 3. GOOGLE SHEETS BAĞLANTISI (Doğrudan Link Yöntemi)
+# Buradaki linki "Paylaş" butonuna bastığında aldığın linkle değiştirelim
+SHEET_PUBLIC_LINK = "https://docs.google.com/spreadsheets/d/1FOy_NSRZUtJIApBe7oirdKSp17qfJk9arb_yOwcPo1g/edit?usp=sharing"
 
-# 4. VERİ ÇEKME
-@st.cache_data(ttl=5) # 5 saniyede bir tabloyu tazeler
-def verileri_yukle():
+# 4. VERİ ÇEKME FONKSİYONU
+@st.cache_data(ttl=5)
+def verileri_yukle(url):
+    # Linki CSV formatına dönüştüren güvenli yöntem
+    csv_url = url.replace('/edit?usp=sharing', '/export?format=csv')
     try:
-        df = pd.read_csv(SHEET_URL)
-        # Sütun isimlerini formun oluşturduğu yapıya göre güzelleştirebilirsin
+        df = pd.read_csv(csv_url)
         return df
-    except:
+    except Exception as e:
+        st.error(f"Bağlantı Hatası: {e}")
         return pd.DataFrame()
 
-is_listesi = verileri_yukle()
+is_listesi = verileri_yukle(SHEET_PUBLIC_LINK)
 
-# 5. SOL PANEL - VERİ GİRİŞİ YÖNLENDİRMESİ
+# 5. SOL PANEL
 with st.sidebar:
     st.header("📌 İşlem Yönetimi")
-    st.write("Yeni bir iş kaydetmek için aşağıdaki butonu kullanın. Formu doldurduğunuzda liste otomatik güncellenecektir.")
-    
-    # Senin Form Linkin (Düzenleme değil, gönderme linki)
-    form_link = "https://docs.google.com/forms/d/e/1FAIpQLSe-Xo50-x3Eit4x_2G6-HhG5W5s_E9J108s6s/viewform" # ÖRNEK: Buraya formun 'GÖNDER' kısmındaki linki yapıştırabilirsin
-    
     st.link_button("🚀 YENİ İŞ KAYDI GİR", "https://docs.google.com/forms/d/1r9odjXloW2hhNqlHm4uo-4dV-aicS4l5s_E9J108s6s/viewform")
-    
     st.divider()
-    st.info("Kayıtlar doğrudan Google Sheets'e işlenir ve tüm ekip tarafından eş zamanlı görülür.")
+    st.info("Kayıtlar doğrudan Google Sheets'e işlenir.")
 
-# 6. ANA PANEL - LİSTE GÖRÜNTÜLEME
+# 6. ANA PANEL
 st.subheader("📋 Aktif İş Takip Listesi")
 
 if not is_listesi.empty:
-    # Formun otomatik eklediği 'Zaman Damgası' sütununa göre en yeni işi en üstte göster
-    if 'Zaman damgası' in is_listesi.columns:
-        is_listesi = is_listesi.sort_values(by='Zaman damgası', ascending=False)
-    
+    # Sütunları temizleyelim (Boş sütunları gösterme)
+    is_listesi = is_listesi.dropna(how='all', axis=1)
     st.dataframe(is_listesi, use_container_width=True, hide_index=True)
 else:
-    st.info("Henüz bekleyen bir işlem yok veya tablo bağlantısı kuruluyor...")
+    st.info("Tablo okunuyor veya henüz veri yok. Lütfen Google Sheets dosyanızda 'Bağlantıya sahip olan herkes: Görüntüleyebilir' ayarının açık olduğundan emin olun.")
 
-# 7. ALT BİLGİ
-st.divider()
-st.caption(f"Veri Kaynağı: Google Sheets | Son Senkronizasyon: {datetime.now().strftime('%H:%M:%S')}")
-
+st.caption(f"Son Senkronizasyon: {datetime.now().strftime('%H:%M:%S')}")
