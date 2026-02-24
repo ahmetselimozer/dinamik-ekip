@@ -2,53 +2,50 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-# 1. SAYFA AYARLARI
 st.set_page_config(page_title="Kuveyttürk Dinamik Ekip", layout="wide", page_icon="🏦")
 
-# 2. KURUMSAL TASARIM
+# Şık Tasarım
 st.markdown("""
     <style>
-    .stApp { background-color: #f4f7f6; }
-    .stButton>button { background-color: #006736; color: white; border-radius: 10px; height: 3.5em; width: 100%; font-weight: bold; }
-    h1 { color: #006736; font-family: 'Arial'; }
-    .stDataFrame { background-color: white; border-radius: 10px; }
+    .stApp { background-color: #f8f9fa; }
+    .stButton>button { background-color: #006736; color: white; border-radius: 10px; height: 3.5em; width: 100%; }
+    h1 { color: #006736; }
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🏦 İkitelli Ticari - Dinamik Ekip Paneli")
+st.title("🏦 İkitelli Ticari - Dinamik Ekip")
 
-# 3. GOOGLE SHEETS ID (Senin dosyanın ID'si)
-# Eğer dosya değişmediyse bu ID sabit kalmalı:
-SHEET_ID = "1FOy_NSRZUtJIApBe7oirdKSp17qfJk9arb_yOwcPo1g"
-# En sağlam indirme linki formatı budur:
-SHEET_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv"
+# --- BURAYA DİKKAT ---
+# Web'de Yayınla kısmından aldığın o CSV linkini buraya tırnak içine yapıştır:
+CSV_YAYIN_LINKI = "BURAYA_KOPYALADIGIN_CSV_LINKINI_YAPISTIR"
 
-# 4. VERİ ÇEKME FONKSİYONU
-@st.cache_data(ttl=5)
-def verileri_yukle():
+@st.cache_data(ttl=1) # Önbelleği neredeyse sıfırlıyoruz
+def veri_cek():
     try:
-        # Linkin sonuna benzersiz bir sayı ekleyerek Google'ı zorluyoruz (Cache temizleme)
-        taze_url = f"{SHEET_URL}&v={datetime.now().timestamp()}"
+        # Linkin sonuna benzersiz bir sayı ekleyerek her seferinde taze veri çekiyoruz
+        taze_url = f"{CSV_YAYIN_LINKI}&dummy={datetime.now().timestamp()}"
         df = pd.read_csv(taze_url)
         return df
     except Exception as e:
-        # Eğer hala hata alıyorsak, hatayı ekrana yazdır ki sorunu görelim
-        st.error(f"Bağlantı sorunu yaşanıyor. Lütfen Google Sheets 'Paylaş' ayarlarını kontrol edin. Hata: {e}")
-        return pd.DataFrame()
+        return None
 
-is_listesi = verileri_yukle()
+liste = veri_cek()
 
-# 5. SOL PANEL
 with st.sidebar:
     st.header("📌 İşlem Yönetimi")
     st.link_button("🚀 YENİ İŞ KAYDI GİR", "https://docs.google.com/forms/d/1r9odjXloW2hhNqlHm4uo-4dV-aicS4l5s_E9J108s6s/viewform")
     st.divider()
-    st.info("Kayıtlar doğrudan Google Sheets'e işlenir.")
+    st.info("Kayıtlar şahsi Google hesabınıza anlık işlenir.")
 
-# 6. ANA PANEL
-st.subheader("📋 Aktif İş Takip Listesi")
+st.subheader("📋 Güncel İş Listesi")
 
-if not is_listesi.empty:
-    st.dataframe(is_listesi, use_container_width=True, hide_index=True)
+if liste is not None:
+    # Boş satırları temizle
+    liste = liste.dropna(how='all')
+    st.dataframe(liste, use_container_width=True, hide_index=True)
 else:
-    st.warning("Şu an tablo verisi çekilemiyor. Dosyanın 'Bağlantıya sahip olan herkes: Görüntüleyebilir' olduğundan emin olun.")
+    # Eğer hala hata alıyorsak, ekranda linki test etmen için bir uyarı verelim
+    st.error("⚠️ Veri çekilemedi. Lütfen 'Web'de Yayınla' kısmından CSV seçtiğinizden emin olun.")
+    st.info("Eğer CSV linkini koda doğru yapıştırdıysanız, 1-2 dakika içinde Google yayını aktif edecektir.")
+
+st.caption(f"Son Güncelleme: {datetime.now().strftime('%H:%M:%S')}")
