@@ -24,7 +24,6 @@ def verileri_yukle():
     try:
         taze_url = f"{CSV_URL}&cb={datetime.now().timestamp()}"
         df = pd.read_csv(taze_url)
-        # SÜTUN İSİMLERİNİ TEMİZLE (Boşlukları siler, hepsini standart hale getirir)
         df.columns = df.columns.str.strip()
         return df
     except:
@@ -32,51 +31,46 @@ def verileri_yukle():
 
 df = verileri_yukle()
 
+# --- SÜTUN İSİMLERİNİ FORMUNA GÖRE TANIMLIYORUZ ---
+ACILIYET_SUTUNU = "Aciliyet (Çoktan Seçmeli: Normal, Acil, Kritik)"
+ZAMAN_SUTUNU = "Zaman damgası"
+FIRMA_SUTUNU = "Firma Ünvanı"
+
 # 4. SOL PANEL
 with st.sidebar:
     st.header("📌 Menü")
     st.link_button("🚀 YENİ İŞ KAYDI GİR", "https://docs.google.com/forms/d/1r9odjXloW2hhNqlHm4uo-4dV-aicS4l5s_E9J108s6s/viewform")
     st.divider()
+    st.info("Kritik işler kırmızı satırla gösterilir.")
 
-# 5. KONTROL VE GÖRÜNTÜLEME
+# 5. ÜST ÖZET VE RENKLENDİRME
 if df is not None and not df.empty:
-    # Hata almamak için sütun kontrolü yapıyoruz
-    mevcut_sutunlar = df.columns.tolist()
-    
-    # Eğer 'Aciliyet' sütunu varsa metrikleri hesapla, yoksa güvenli geç
-    aciliyet_sutunu = "Aciliyet" if "Aciliyet" in mevcut_sutunlar else None
-    
     col1, col2, col3 = st.columns(3)
     col1.metric("Toplam İşlem", len(df))
     
-    if aciliyet_sutunu:
-        kritik_sayisi = len(df[df[aciliyet_sutunu].str.contains('Kritik', na=False)])
+    # Kritik işleri say (Metin içinde 'Kritik' geçenleri bulur)
+    if ACILIYET_SUTUNU in df.columns:
+        kritik_sayisi = len(df[df[ACILIYET_SUTUNU].str.contains('Kritik', na=False)])
         col2.metric("Kritik Seviye", kritik_sayisi)
-    else:
-        col2.warning("'Aciliyet' sütunu bulunamadı")
-        # Mevcut sütunları göstererek debug yapalım
-        st.write("Mevcut Sütunlar:", mevcut_sutunlar)
+    
+    col3.metric("Durum", "Aktif Çalışıyor")
 
-    col3.metric("Hedeflenen", "2026 Planı")
-
-    # RENKLENDİRME FONKSİYONU (Güvenli hal)
+    # RENKLENDİRME FONKSİYONU
     def satir_stili(row):
-        if aciliyet_sutunu and 'Kritik' in str(row[aciliyet_sutunu]):
+        if ACILIYET_SUTUNU in row.index and 'Kritik' in str(row[ACILIYET_SUTUNU]):
             return ['background-color: #ffcccc'] * len(row)
         return [''] * len(row)
 
     st.subheader("📋 Güncel Takip Listesi")
     
-    # Zaman sıralaması (Eğer varsa)
-    zaman_sutunu = "Zaman damgası" if "Zaman damgası" in mevcut_sutunlar else mevcut_sutunlar[0]
-    try:
-        df[zaman_sutunu] = pd.to_datetime(df[zaman_sutunu])
-        df = df.sort_values(by=zaman_sutunu, ascending=False)
-    except:
-        pass
+    # Zaman sıralaması
+    if ZAMAN_SUTUNU in df.columns:
+        df[ZAMAN_SUTUNU] = pd.to_datetime(df[ZAMAN_SUTUNU])
+        df = df.sort_values(by=ZAMAN_SUTUNU, ascending=False)
 
+    # Görsel tabloyu oluştur
     styled_df = df.style.apply(satir_stili, axis=1)
     st.dataframe(styled_df, use_container_width=True, hide_index=True)
 
 else:
-    st.info("Henüz görüntülenecek veri yok veya tablo bağlantısı bekleniyor.")
+    st.info("Henüz görüntülenecek veri yok veya tablo bağlantısı kuruluyor.")
